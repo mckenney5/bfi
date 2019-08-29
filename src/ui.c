@@ -12,15 +12,10 @@
 #define MAX_FILE_SIZE 1000000
 #define FILE_SIZE 1000
 
-//flags
-static int record = 0; //record everything the user types
-static int ignore = 1; //if 1, ignore interal commands like 'q' to quit or 'd' to dump mem
-static int verbose = 0; //verbose output
+//static flags
 static int compile = 0;
-static int newline = 0;
-static int keep = 0;
-static int optimize = 0;
-static size_t memsize = MEM;
+static size_t memsize = MEM*sizeof(char);
+static int ignore = 1; //if 1, ignore interal commands like 'c' to clear or 'd' to dump mem
 
 int from_file(char *file_name){
 	char *inpt = NULL;
@@ -69,8 +64,8 @@ int from_file(char *file_name){
 }
 int cli(){
 	char *inpt = NULL;
-	size_t mem_size = MEM*sizeof(char);
-	char *memory = calloc(MEM, sizeof(char));
+	size_t mem_size = memsize*sizeof(char);
+	char *memory = calloc(memsize, sizeof(char));
 	size_t d_ptr = 0;
 
 	printf("-- Brainfuck Interpreter running with %ld bytes of dynamic memory --\n", mem_size);
@@ -84,16 +79,24 @@ int cli(){
 		inpt = linenoise(get_prompt());
 		if(inpt != NULL){
 			if(!strcmp(inpt, "q") || !strcmp(inpt, "quit") || !strcmp(inpt, "e") || !strcmp(inpt, "exit")) exit(0);
-			interp(inpt, memory, &mem_size, &d_ptr);
+			else if(!ignore && (!strcmp(inpt, "c") || !strcmp(inpt, "clear") || !strcmp(inpt, "cls"))) linenoiseClearScreen();
 			linenoiseHistoryAdd(inpt);
+			interp(inpt, memory, &mem_size, &d_ptr);
 		}
 	}
 	return 0;
 }
 
 int main(int argc, char *argv[]){
+	//flags
+	int record = 0; //record everything the user types
+		int verbose = 0; //verbose output
+		int newline = 0;
+	int keep = 0;
+	int optimize = 0;
+	
 	//handle args
-	int i, l;
+	int i;
 	char mem_size[11] = MEM_S;
 	for(i=1; i < argc; i++){
 		if(!strcmp(argv[i], "-r") || !strcmp(argv[i], "--record")) record = 1;
@@ -110,7 +113,7 @@ int main(int argc, char *argv[]){
 		else if(!strcmp(argv[i], "-m") || !strcmp(argv[i], "--memory")){
 			strncpy(mem_size, argv[++i], 11);
 			mem_size[10] = '\0';
-			if(atol(mem_size) != 0) memsize = atol(mem_size);
+			if(atol(mem_size) != 0){ memsize = atol(mem_size); memsize = memsize*sizeof(char); }
 		}
 		else if(!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) { puts("bfi -[rdvh] <optional_file>\n record to file, turn on debugging features, verbose output, and help respectivley."); return 0;}
 		else if(argv[i][0] == '-'){
@@ -122,7 +125,6 @@ int main(int argc, char *argv[]){
 		}
 	}
 	set_flags(newline, keep, optimize, mem_size, record, ignore, verbose);
-
 	return cli();
 }
 
