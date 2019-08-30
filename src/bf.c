@@ -1,6 +1,8 @@
 #include <stdio.h>		//printf, puts, fprintf
 #include <stdlib.h>		//calloc
 #include <string.h>		//
+#include <unistd.h>
+#include <termios.h>
 #include "../lib/ansi_esc.h"	//colors
 #include "bf.h"
 #include "bf_vars.h"
@@ -17,6 +19,20 @@ static char mem_size[11] = DEFAULT_MEM_SIZE;
 static int record = 0; //record everything the user types
 static int ignore = 1; //if 1, ignore interal commands like 'q' to quit or 'd' to dump mem
 static int verbose = 0; //verbose output
+
+static struct termios orig_termios;
+
+static void disable_rm(){
+/* disables raw mode for the terminal */
+	tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+static void enable_rm(){
+/* Allows us to get input one byte at a time */
+	tcgetattr(STDIN_FILENO, &orig_termios);
+	struct termios raw = orig_termios;
+	raw.c_lflag &= ~(ICANON); // | ECHO); //should echo be off?
+	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
 
 void set_flags(const int readable2, const int keep2, 
 		const int optimize2, const char* mem_size2,
@@ -42,10 +58,10 @@ const char* get_bf(){
 	return BF;
 }
 
-void dump_mem(const char* mem, size_t size, size_t index, char type){
+void dump_mem(const int* mem, size_t size, size_t index, char type){
 	size_t i;
 	printf("-- Dump: [Mem Ptr: %s%ld%s] ", BLUE, index, RESET);
-	for(i=0; i <= size; i++){
+	for(i=0; i <= size/sizeof(int); i++){
 		if(mem[i] != 0){
 			if(type == DUMP_C){
 				printf("%s%ld%s[%c] ", BLUE, i, RESET, mem[i]);
@@ -68,7 +84,7 @@ int record_inpt(const char *inpt){
 	size_t i;
 	FILE *fp = NULL;
 	fp = fopen("a.bf", "a");
-	if(fp == NULL) return 1;
+	if(fp == NULL){ perror("bfi: "); return 1; }
 	for(i=0; i < strlen(inpt); i++){
 		if(is_bf(inpt[i]))
 			fputc(inpt[i], fp);
@@ -78,20 +94,22 @@ int record_inpt(const char *inpt){
 	return 0;
 }
 
-void interp(const char* inpt, char* memory, size_t *mem_size, size_t *d_ptr){
-	size_t i, l, deep;
+void interp(const char* inpt, int* memory, size_t *mem_size, size_t *d_ptr){
+	long i;
+	size_t l, deep;
+	char c = 0;
 	if(record) record_inpt(inpt);
-	for(i=0; i < strlen(inpt); i++){
+	for(i=0; i < (long)strlen(inpt); i++){
 		if(*d_ptr == *mem_size){
 			//expands memory by 10 once the data pointer reaches the end
-			memory = realloc(memory, sizeof(char) * 10);
+			memory = realloc(memory, sizeof(int) * 10);
 			if(memory != NULL){
 				l=*d_ptr;
-				*mem_size += 10;
+				*mem_size += 10*sizeof(int);
 				for(*d_ptr+=10; *d_ptr > l; --*d_ptr) memory[*d_ptr] = 0;
 				if(verbose) printf("bfi: Mem expanded to %ld.", *mem_size);
 			} else {
-				fprintf(stderr, "bfi: Unable to allocate more memory.");
+				fprintf(stderr, "bfi: Unable to allocate more memory.\n");
 				--*d_ptr;
 			}
 		}
@@ -100,7 +118,7 @@ void interp(const char* inpt, char* memory, size_t *mem_size, size_t *d_ptr){
 				++*d_ptr;
 				break;
 			case DEC_D:
-				--*d_ptr;
+				if(*d_ptr != 0) --*d_ptr;
 				break;
 			case INC_B:
 				memory[*d_ptr]++;
@@ -113,13 +131,21 @@ void interp(const char* inpt, char* memory, size_t *mem_size, size_t *d_ptr){
 				fflush(stdout);
 				break;
 			case IN_B:
-				memory[*d_ptr]=getchar();
+				enable_rm();
+				read(STDIN_FILENO, &c, 1);
+				disable_rm();
+				memory[*d_ptr] = c;
+				putchar('\n');
 				break;
 			case START_L:
 				if(!memory[*d_ptr]){
 					deep = 1;
 					while(deep){
 						i++;
+						if(i > (long)strlen(inpt)){
+							fprintf(stderr, "bfi: Error missing '%c'\n", END_L);
+							return;	
+						}
 						if(inpt[i] == START_L) deep++;
 						else if(inpt[i] == END_L) deep--;
 					}
@@ -130,8 +156,14 @@ void interp(const char* inpt, char* memory, size_t *mem_size, size_t *d_ptr){
 					deep = 1;
 					while(deep){
 						i--;
+						if(i < 0){
+							fprintf(stderr, "bfi: Error missing '%c'\n", START_L);
+							return;
+						}
+	
 						if(inpt[i] == END_L) deep++;
 						else if(inpt[i] == START_L) deep--;
+
 					}
 				}
 				break;
@@ -166,7 +198,7 @@ void interp(const char* inpt, char* memory, size_t *mem_size, size_t *d_ptr){
 int translate(FILE *fp){
 	char inpt = EOF;
 	char *mem = calloc(MAX_MEM, sizeof(char));
-	if(mem == NULL) return 1; //TODO be better
+	if(mem == NULL){ perror("bfi: "); return -1; }
 	strcpy(mem, BOILER_START);
 	strcat(mem, mem_size);
 	strcat(mem, BOILER_MID);
@@ -207,9 +239,10 @@ int translate(FILE *fp){
 		//FILE *fp = NULL;
 		fp = NULL;
 		fp = fopen("a.c", "w+");
-		if(fp == NULL) return 2; //TODO be better
+		if(fp == NULL){ perror("bfi: "); return 2; }
 		fprintf(fp, "%s", mem);
 		fclose(fp);
+		free(mem);
 		return system("gcc -Wall a.c");
 }
 

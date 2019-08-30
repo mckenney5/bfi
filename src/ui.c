@@ -10,23 +10,24 @@
 #define MEM 10000
 #define MEM_S "10000"
 #define MAX_FILE_SIZE 1000000
-#define FILE_SIZE 1000
+#define FILE_SIZE 100000
 
 //static flags
 static int compile = 0;
-static size_t memsize = MEM*sizeof(char);
+static size_t memsize = MEM*sizeof(int);
 static int ignore = 1; //if 1, ignore interal commands like 'c' to clear or 'd' to dump mem
+static int verbose = 0;
 
 int from_file(char *file_name){
 	char *inpt = NULL;
-	size_t mem_size = MEM*sizeof(char);
-	char *memory = calloc(MEM, sizeof(char));
+	size_t mem_size = MEM*sizeof(int);
+	int *memory = calloc(MEM, sizeof(int));
 	size_t d_ptr = 0, size, i=0;
 	char data = EOF;
 	FILE *fp = NULL;
 	fp = fopen(file_name, "r");
 	inpt = malloc(FILE_SIZE*sizeof(char));
-	if(fp == NULL || inpt == NULL){
+	if(fp == NULL || inpt == NULL || memory == NULL){
 		fprintf(stderr, "bfi: %s:", file_name);
 		perror("");
 		return 1;
@@ -42,20 +43,24 @@ int from_file(char *file_name){
 		data = fgetc(fp);
 		inpt[i] = data;
 		i++;
-		if(i >= size){
-			if(size + (sizeof(char)*1000) > MAX_FILE_SIZE * sizeof(char)){
+		if(i >= size/sizeof(char)-1){
+			if(size + (sizeof(char)*FILE_SIZE) > MAX_FILE_SIZE * sizeof(char)){
 				fprintf(stderr, "bfi: %s: File size over hard limit of %ld bytes. Truncating.\n",
 					file_name, MAX_FILE_SIZE * sizeof(char));
 				i--;
 				data = EOF;
 				inpt[i] = data;
 			} else {
-				inpt = realloc(inpt, sizeof(char) * 1000);
-				size += sizeof(char) * 1000;
+				if(verbose) putchar('!'); //TODO FIXME
+				fflush(stdout);
+				inpt = realloc(inpt, sizeof(char) * FILE_SIZE);
+				if(inpt == NULL){ perror("bfi "); return -1;}
+				size += sizeof(char) * FILE_SIZE;
 			}
 		}
 	} while(data != EOF);
 	inpt[--i] = '\0';
+	fclose(fp);
 	interp(inpt, memory, &mem_size, &d_ptr);
 
 	free(memory);
@@ -64,8 +69,10 @@ int from_file(char *file_name){
 }
 int cli(){
 	char *inpt = NULL;
-	size_t mem_size = memsize*sizeof(char);
-	char *memory = calloc(memsize, sizeof(char));
+	size_t mem_size = memsize;
+	int *memory = malloc(mem_size);
+	if(memory == NULL){ perror("bfi: "); return -1;}
+	memset(memory, 0, mem_size);
 	size_t d_ptr = 0;
 
 	printf("-- Brainfuck Interpreter running with %ld bytes of dynamic memory --\n", mem_size);
@@ -90,8 +97,7 @@ int cli(){
 int main(int argc, char *argv[]){
 	//flags
 	int record = 0; //record everything the user types
-		int verbose = 0; //verbose output
-		int newline = 0;
+	int newline = 0;
 	int keep = 0;
 	int optimize = 0;
 	

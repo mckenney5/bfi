@@ -12,13 +12,13 @@ const char* get_intern();
 
 const char* get_bf();
 
-void dump_mem(const char* mem, size_t size, size_t index, char type);
+void dump_mem(const int* mem, size_t size, size_t index, char type);
 
 int is_bf(const char inpt);
 
 int record_inpt(const char *inpt);
 
-void interp(const char* inpt, char* memory, size_t *mem_size, size_t *d_ptr);
+void interp(const char* inpt, int* memory, size_t *mem_size, size_t *d_ptr);
 
 #endif //_USING_BF_H
 
