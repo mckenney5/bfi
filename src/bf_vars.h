@@ -24,7 +24,7 @@
 #define MAX_MEM 1000000
 #define MEM MAX_MEM/4
 
-#define BOILER_START "/* Auto Generated Code */\n#include <stdio.h>\nint main(){\nchar mem["
+#define BOILER_START "/* Auto Generated Code */\n#include <stdio.h>\nint main(){\nint mem["
 #define DEFAULT_MEM_SIZE "10000"
 #define BOILER_MID "] = {0};\nchar *d_ptr=mem;\n"
 #define BOILER_END "return 0;\n}"
