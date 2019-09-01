@@ -53,7 +53,7 @@ int from_file(char *file_name){
 			} else {
 				if(verbose) putchar('!'); //TODO FIXME
 				fflush(stdout);
-				inpt = realloc(inpt, sizeof(char) * FILE_SIZE);
+				inpt = realloc(inpt, size + (sizeof(char) * FILE_SIZE));
 				if(inpt == NULL){ perror("bfi "); return -1;}
 				size += sizeof(char) * FILE_SIZE;
 			}
