@@ -1,15 +1,14 @@
-bfi: lib/linenoise.h lib/linenoise.c src/bf.c src/bf.h src/bf_vars.h src/ui.c
-	$(CC) -Wall -Ofast -o bfi lib/linenoise.c src/bf.c src/ui.c
+DEPENDS = lib/linenoise.h lib/linenoise.c src/bf.c src/bf.h src/bf_vars.h src/ui.c src/error_handler.c src/error_handler.h src/intern_errors.h
 
-bf2c: src/bf2c.c
-	$(CC) -Wall -Ofast -o bf2c src/bf2c.c
+bfi: $(DEPENDS)
+	$(CC) -Wall -Ofast -o bfi lib/linenoise.c src/bf.c src/error_handler.c src/ui.c
 
 clean:
 	rm bf*
 	rm a.c
 	rm a.out
 
-debug:	lib/linenoise.h lib/linenoise.c src/bf.c src/bf.h src/bf_vars.h src/ui.c
+debug: $(DEPENDS)	
 	# Used if you want debugging features on
-	$(CC) -Wall -Wextra -O0 -g -DDEBUGGING -o bfi.debugging lib/linenoise.c src/bf.c src/ui.c
+	$(CC) -Wall -Wextra -O0 -g -DDEBUGGING -o bfi.debugging lib/linenoise.c src/bf.c src/error_handler.c src/ui.c
 

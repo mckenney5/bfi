@@ -1,3 +1,4 @@
+/* Copyright (c) Adam McKenney 2019, see LICENSE */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +11,7 @@
 #define MEM 10000
 #define MEM_S "10000"
 #define MAX_FILE_SIZE 1000000
-#define FILE_SIZE 100000
+#define FILE_SIZE 1024
 
 //static flags
 static int compile = 0;
@@ -51,7 +52,7 @@ int from_file(char *file_name){
 				data = EOF;
 				inpt[i] = data;
 			} else {
-				if(verbose) putchar('!'); //TODO FIXME
+				if(verbose) putchar('!');
 				fflush(stdout);
 				inpt = realloc(inpt, size + (sizeof(char) * FILE_SIZE));
 				if(inpt == NULL){ perror("bfi "); return -1;}
@@ -121,7 +122,7 @@ int main(int argc, char *argv[]){
 			mem_size[10] = '\0';
 			if(atol(mem_size) != 0){ memsize = atol(mem_size); memsize = memsize*sizeof(char); }
 		}
-		else if(!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) { puts("bfi -[rdvh] <optional_file>\n record to file, turn on debugging features, verbose output, and help respectivley."); return 0;}
+		else if(!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) { puts("bfi -[rdvh] <optional_file>\n record to file, turn on debugging features, verbose output, and help respectivley. See source code."); return 0;}
 		else if(argv[i][0] == '-'){
 			fprintf(stderr, "bfi: Unknown arg '%s'\n", argv[i]);
 			return 1;
@@ -133,5 +134,4 @@ int main(int argc, char *argv[]){
 	set_flags(newline, keep, optimize, mem_size, record, ignore, verbose);
 	return cli();
 }
-
 

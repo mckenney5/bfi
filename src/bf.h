@@ -1,3 +1,4 @@
+/* Copyright (c) Adam McKenney 2019, see LICENSE */
 #ifndef _USING_BF_H
 #define _USING_BF_H
 void set_flags(const int readable2, const int keep2, 

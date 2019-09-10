@@ -1,3 +1,4 @@
+/* Copyright (c) Adam McKenney 2019, see LICENSE */
 #include <stdio.h>		//printf, puts, fprintf
 #include <stdlib.h>		//calloc
 #include <string.h>		//
@@ -6,6 +7,8 @@
 #include "../lib/ansi_esc.h"	//colors
 #include "bf.h"
 #include "bf_vars.h"
+#include "intern_errors.h"
+#include "error_handler.h"
 
 //static consts
 static const char BF[] = {INC_D, DEC_D, INC_B, DEC_B, OUT_B, IN_B, START_L, END_L, '\0'};
@@ -84,7 +87,7 @@ int record_inpt(const char *inpt){
 	size_t i;
 	FILE *fp = NULL;
 	fp = fopen("a.bf", "a");
-	if(fp == NULL){ perror("bfi: "); return 1; }
+	if(fp == NULL) extern_error(E_EXTERNAL, E_OPENF, EXIT_OPENF);
 	for(i=0; i < strlen(inpt); i++){
 		if(is_bf(inpt[i]))
 			fputc(inpt[i], fp);
@@ -102,14 +105,15 @@ void interp(const char* inpt, int* memory, size_t *mem_size, size_t *d_ptr){
 	for(i=0; i < (long)strlen(inpt); i++){
 		if(*d_ptr == *mem_size){
 			//expands memory by 10 once the data pointer reaches the end
-			memory = realloc(memory, sizeof(int) * 10);
+			memory = realloc(memory, (*mem_size +10) * sizeof(int));
 			if(memory != NULL){
 				l=*d_ptr;
 				*mem_size += 10*sizeof(int);
 				for(*d_ptr+=10; *d_ptr > l; --*d_ptr) memory[*d_ptr] = 0;
 				if(verbose) printf("bfi: Mem expanded to %ld.", *mem_size);
 			} else {
-				fprintf(stderr, "bfi: Unable to allocate more memory.\n");
+				extern_error(E_EXTERNAL, E_ALLOC, 0);
+				throw_error(E_USER, E_RBOUNDS, 0);
 				--*d_ptr;
 			}
 		}
@@ -119,6 +123,7 @@ void interp(const char* inpt, int* memory, size_t *mem_size, size_t *d_ptr){
 				break;
 			case DEC_D:
 				if(*d_ptr != 0) --*d_ptr;
+				else throw_error(E_USER, E_LBOUNDS, 0);
 				break;
 			case INC_B:
 				memory[*d_ptr]++;
@@ -198,7 +203,7 @@ void interp(const char* inpt, int* memory, size_t *mem_size, size_t *d_ptr){
 int translate(FILE *fp){
 	char inpt = EOF;
 	char *mem = calloc(MAX_MEM, sizeof(char));
-	if(mem == NULL){ perror("bfi: "); return -1; }
+	if(mem == NULL) extern_error(E_EXTERNAL, E_ALLOC, EXIT_ALLOC);
 	strcpy(mem, BOILER_START);
 	strcat(mem, mem_size);
 	strcat(mem, BOILER_MID);
@@ -236,13 +241,12 @@ int translate(FILE *fp){
 		if(readable) strcat(mem, "\n"); //TODO add indents for while and fix for comments
 	} while(inpt != EOF);
 		//write to disk
-		//FILE *fp = NULL;
 		fp = NULL;
 		fp = fopen("a.c", "w+");
-		if(fp == NULL){ perror("bfi: "); return 2; }
+		if(fp == NULL) extern_error(E_EXTERNAL, E_OPENF, EXIT_OPENF);
 		fprintf(fp, "%s", mem);
 		fclose(fp);
 		free(mem);
-		return system("gcc -Wall a.c");
+		return system(COMPILE_CMD);
 }
 

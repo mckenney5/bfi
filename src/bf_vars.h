@@ -1,3 +1,4 @@
+/* Copyright (c) Adam McKenney 2019, see LICENSE */
 #ifndef _USING_BF_VARS_H
 #define _USING_BF_VARS_H
 
@@ -26,8 +27,10 @@
 
 #define BOILER_START "/* Auto Generated Code */\n#include <stdio.h>\nint main(){\nint mem["
 #define DEFAULT_MEM_SIZE "10000"
-#define BOILER_MID "] = {0};\nchar *d_ptr=mem;\n"
+#define BOILER_MID "] = {0};\nint *d_ptr=mem;\n"
 #define BOILER_END "return 0;\n}"
+
+#define COMPILE_CMD "cc -Wall a.c"
 
 #endif //_USING_BF_VARS_H
 

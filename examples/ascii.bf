@@ -1,0 +1,2 @@
+[Keeps counting up forever]
+>+[.+]
