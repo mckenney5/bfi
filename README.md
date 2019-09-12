@@ -2,6 +2,8 @@ Brain Fuck Interpreter
 ======================
 bfi — _A brain fuck interpreter_
 
+![screen-shot](https://github.com/mckenney5/bfi/raw/master/sc.png)
+
 ## Description
 An interactive interpreter and crosspiler for brain fuck.
 See docs/ for more info.
