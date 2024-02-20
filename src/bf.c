@@ -1,7 +1,7 @@
-/* Copyright (c) Adam McKenney 2019, see LICENSE */
+/* Copyright (c) Adam McKenney 2024, see LICENSE */
 #include <stdio.h>		//printf, puts, fprintf
 #include <stdlib.h>		//calloc
-#include <string.h>		//
+#include <string.h>		
 #include <unistd.h>
 #include <termios.h>
 #include "../lib/ansi_esc.h"	//colors
@@ -67,7 +67,29 @@ void dump_mem(const int* mem, size_t size, size_t index, char type){
 	for(i=0; i <= size/sizeof(int); i++){
 		if(mem[i] != 0){
 			if(type == DUMP_C){
-				printf("%s%ld%s[%c] ", BLUE, i, RESET, mem[i]);
+				char temp[3] = {'\0'};
+				temp[0] = '\\';
+				switch(mem[i]){
+					case '\n':
+						temp[1] = 'n';
+						break;
+					case '\t':
+						temp[1] = 't';
+						break;
+					case '\0':
+						temp[1] = '0';
+						break;
+					case '\r':
+						temp[1] = 'r';
+						break;
+					case '\b':
+						temp[1] = 'b';
+						break;
+					default:
+						temp[0] = mem[i];
+				}
+				temp[3] = '\0';
+				printf("%s%ld%s[%s] ", BLUE, i, RESET, temp);
 			} else if(type == DUMP_I) {
 				printf("%s%ld%s[%d] ", BLUE, i, RESET, mem[i]);
 			}
